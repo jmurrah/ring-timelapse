@@ -1,0 +1,48 @@
+:root {
+  --bg: #0c0f0c;
+  --surface: #111612;
+  --surface2: #161d16;
+
+  --text: #f2ede3;
+  --muted-text: #b6aa9a;
+
+  --border-strong: #6e6e60;
+
+  --primary-ember: #e07a3f;
+  --on-primary: #0c0f0c;
+
+  --accent-sage: #7fa07a;
+  --primary-glow: #f0b35a;
+
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--primary-ember);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--surface2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface2);
+  --muted-foreground: var(--muted-text);
+  --accent: var(--accent-sage);
+  --accent-foreground: var(--on-primary);
+  --destructive: var(--primary-glow);
+  --border: var(--border-strong);
+  --input: var(--surface2);
+  --ring: var(--accent-sage);
+  --chart-1: var(--primary-ember);
+  --chart-2: var(--primary-glow);
+  --chart-3: var(--accent-sage);
+  --chart-4: var(--muted-text);
+  --chart-5: var(--border-strong);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--primary-ember);
+  --sidebar-primary-foreground: var(--on-primary);
+  --sidebar-accent: var(--accent-sage);
+  --sidebar-accent-foreground: var(--on-primary);
+  --sidebar-border: var(--border-strong);
+  --sidebar-ring: var(--accent-sage);
+}

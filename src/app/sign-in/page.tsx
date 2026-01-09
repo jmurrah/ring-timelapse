@@ -12,12 +12,12 @@ export default function SignInPage({
   const showDenied = resolvedParams?.error === "AccessDenied";
 
   return (
-    <main className="h-full w-full flex flex-col items-center justify-center gap-6">
-      <h1 className="text-4xl font-semibold">
-        Sign in to <span className="font-bold">analemma</span>
+    <main className="h-full w-full flex flex-col items-center justify-center itemc-center gap-4">
+      <h1 className="text-5xl">
+        Welcome to <span className="text-[var(--primary)]">analemma</span>
       </h1>
       {showDenied ? (
-        <p className="text-sm text-red-600">
+        <p className="text-red-600">
           Access denied. Please use an allowed account.
         </p>
       ) : null}
