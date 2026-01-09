@@ -12,8 +12,8 @@ export default function SignInPage({
   const showDenied = resolvedParams?.error === "AccessDenied";
 
   return (
-    <main className="h-full w-full flex flex-col items-center justify-center itemc-center gap-4">
-      <h1 className="text-5xl">
+    <div className="h-full w-full flex flex-col items-center justify-center gap-4">
+      <h1 className="text-5xl text-center">
         Welcome to <span className="text-[var(--primary)]">analemma</span>
       </h1>
       {showDenied ? (
@@ -24,6 +24,6 @@ export default function SignInPage({
       <div className="w-full max-w-xs">
         <GoogleSignInButton />
       </div>
-    </main>
+    </div>
   );
 }

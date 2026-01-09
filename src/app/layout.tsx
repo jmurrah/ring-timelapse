@@ -1,5 +1,7 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import Footer from "@/components/common/Footer";
+import LayoutContainer from "@/components/common/LayoutContainer";
 
 const barlow = localFont({
   variable: "--font-barlow",
@@ -45,9 +47,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${barlow.variable} ${hedvig.variable} h-screen w-screen`}
+      className={`${barlow.variable} ${hedvig.variable}`}
     >
-      <body>{children}</body>
+      <body className="min-h-screen flex flex-col">
+        <main className="flex-1 flex h-col px-4">
+          <LayoutContainer>{children}</LayoutContainer>
+        </main>
+        <Footer />
+      </body>
     </html>
   );
 }

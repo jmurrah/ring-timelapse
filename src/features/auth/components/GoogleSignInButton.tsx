@@ -37,7 +37,7 @@ export default function GoogleSignInButton({
       <Button
         onClick={handleClick}
         variant="accent"
-        className="flex w-full gap-2 justify-center items-center cursor-pointer h-12"
+        className="flex flex-wrap w-full gap-2 justify-center items-center cursor-pointer h-12"
       >
         <img
           src="/logos/google.svg"
@@ -45,9 +45,9 @@ export default function GoogleSignInButton({
           width={26}
           height={26}
           aria-hidden="true"
-          className="bg-[var(--text)] p-0.5 rounded-sm"
+          className="bg-[var(--text)] p-0.5 rounded-sm shrink-0"
         />
-        <p className="text-lg">Continue with Google</p>
+        <p className="text-lg text-center text-wrap">Continue with Google</p>
       </Button>
       {errorMessage ? (
         <p className="mt-2 text-red-600" role="alert">
