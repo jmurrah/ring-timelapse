@@ -84,11 +84,11 @@ export default function SunsetCountdown({
 
   return (
     <>
-      <div className="w-full flex justify-between">
+      <div className="w-full flex justify-between text-[var(--text-muted)]">
         <p>
           {`\u{1F4CD}`} {locationLabel}
         </p>
-        <div className="flex items-center gap-1.5 text-sm text-[var(--text)]">
+        <div className="flex items-center gap-1.5 text-sm">
           <span>{clock}</span>
           <span>{timeZoneName}</span>
         </div>

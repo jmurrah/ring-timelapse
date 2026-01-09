@@ -28,8 +28,25 @@ export default async function HomePage() {
         locationLabel={locationEnv.label}
         sunsetIso={sunsetTime.toISOString()}
       />
-      <div className="w-full">
-        <p>Live View</p>
+      <div className="w-full text-center">
+        <h1 className="text-3xl">Live View</h1>
+        <div>
+          <p>this is where the live view is</p>
+        </div>
+      </div>
+      <div>
+        <div className="w-full flex justify-between">
+          <h1 className="text-2xl">Favorite Sunsets</h1>
+          <p>View all sunsets</p>
+        </div>
+        <div></div>
+      </div>
+      <div>
+        <div className="w-full flex justify-between">
+          <h1 className="text-2xl">Recent Sunsets</h1>
+          <p>View all sunsets</p>
+        </div>
+        <div></div>
       </div>
     </div>
   );

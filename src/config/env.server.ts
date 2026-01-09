@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { LocationEnv } from "@/types/domain/location";
 
+const stripEnclosingQuotes = (value: string): string =>
+  value.replace(/^(['"])(.*)\1$/, "$2").trim();
+
 const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
   GOOGLE_CLIENT_SECRET: z.string().min(1, "GOOGLE_CLIENT_SECRET is required"),
@@ -38,7 +41,7 @@ export const serverEnv = parsed.data;
 export const authEnv = serverEnv;
 
 export const locationEnv: LocationEnv = {
-  label: serverEnv.LOCATION,
+  label: stripEnclosingQuotes(serverEnv.LOCATION),
   latitude: serverEnv.LATITUDE,
   longitude: serverEnv.LONGITUDE,
 };
