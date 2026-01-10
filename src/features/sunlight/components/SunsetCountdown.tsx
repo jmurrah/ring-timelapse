@@ -1,5 +1,6 @@
 "use client";
 
+import { Clock } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { APP_TIME_ZONE, TIME_LOCALE } from "@/constants/time";
 import type { LocationEnv } from "@/types/domain/location";
@@ -43,25 +44,6 @@ const findNextSunset = (
 
   const tomorrow = new Date(reference.getTime() + DAY_MS);
   return getSunsetForDate(tomorrow, latitude, longitude);
-};
-
-const formatClock = (date: Date): string =>
-  new Intl.DateTimeFormat(TIME_LOCALE, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: APP_TIME_ZONE,
-  }).format(date);
-
-const getTimeZoneName = (): string => {
-  const formatter = new Intl.DateTimeFormat(TIME_LOCALE, {
-    timeZone: APP_TIME_ZONE,
-    timeZoneName: "short",
-  });
-  const part = formatter
-    .formatToParts(new Date())
-    .find((item) => item.type === "timeZoneName");
-  return part?.value ?? "";
 };
 
 const formatSunset = (date: Date | null): string => {
@@ -108,12 +90,11 @@ export default function SunsetCountdown({
   location,
   sunsetIso,
 }: SunsetCountdownProps) {
-  const { label, latitude, longitude } = location;
+  const { latitude, longitude } = location;
   const [now, setNow] = useState<Date>(() => new Date());
   const [sunsetTime, setSunsetTime] = useState<Date | null>(() =>
     parseSunsetIso(sunsetIso),
   );
-  const timeZoneName = useMemo(getTimeZoneName, []);
 
   useEffect(() => {
     setSunsetTime(parseSunsetIso(sunsetIso));
@@ -145,7 +126,6 @@ export default function SunsetCountdown({
     }
   }, [latitude, longitude, now, sunsetTime]);
 
-  const clock = useMemo(() => formatClock(now), [now]);
   const sunsetLabel = useMemo(() => formatSunset(sunsetTime), [sunsetTime]);
   const sunsetDateLabel = useMemo(
     () => formatSunsetDate(sunsetTime),
@@ -158,21 +138,12 @@ export default function SunsetCountdown({
 
   return (
     <>
-      <div className="w-full flex justify-between text-[var(--text-muted)]">
-        <p>
-          {`\u{1F4CD}`} {label}
-        </p>
-        <div className="flex items-center gap-1.5 text-sm">
-          <span suppressHydrationWarning>{clock}</span>
-          <span>{timeZoneName}</span>
-        </div>
-      </div>
       <div className="w-full flex flex-col gap-2 items-center">
         <p className="text-xl">
           Sunset at {sunsetLabel} on {sunsetDateLabel}.
         </p>
         <div className="w-full flex justify-center items-center gap-2 text-2xl bg-[var(--accent)] p-2 rounded-lg">
-          <span aria-hidden className="icon-clock-count" />
+          <Clock size={24} aria-hidden className="text-[var(--bg)]" />
           <div className="text-center">
             <p
               className="text-[var(--bg)] font-semibold"

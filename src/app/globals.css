@@ -90,26 +90,3 @@
   cursor: pointer;
   color: var(--text);
 }
-
-.icon-clock-count {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  background-color: var(--bg);
-  -webkit-mask: url("/icons/clock.svg") center / contain no-repeat;
-  mask: url("/icons/clock.svg") center / contain no-repeat;
-}
-
-.sign-out-icon {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  background-color: var(--text);
-  -webkit-mask: url("/icons/log-out.svg") center / contain no-repeat;
-  mask: url("/icons/log-out.svg") center / contain no-repeat;
-}
-
-.sign-out-icon:hover {
-  background-color: var(--primary);
-  cursor: pointer;
-}

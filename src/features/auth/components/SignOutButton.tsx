@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { signOutFromApp } from "../services/authClient";
 
 type SignOutButtonProps = {
@@ -22,9 +23,9 @@ export default function SignOutButton({
       type="button"
       onClick={handleClick}
       aria-label={ariaLabel}
-      className="sign-out-icon flex items-center"
+      className="flex items-center text-[var(--text)] cursor-pointer hover:text-[var(--primary)]"
     >
-      <span aria-hidden className="sign-out-icon" />
+      <LogOut aria-hidden size={20} />
     </button>
   );
 }

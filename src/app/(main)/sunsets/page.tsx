@@ -25,18 +25,18 @@ export default async function SunsetsPage() {
       <div className="flex h-full w-full flex-col gap-10">
         <div className="space-y-2 text-center">
           <h1 className="text-3xl">Sunsets</h1>
-          <p className="text-gray-400">
+          <p className="text-[var(--text-muted)]">
             Browse the archive of captured sunsets.
           </p>
         </div>
 
         <div className="flex flex-col gap-12">
           <div className="w-full text-center">
-            <h2 className="text-2xl">Favorite Sunsets</h2>
+            <h2 className="text-2xl mb-3">Favorite Sunsets</h2>
             <FavoritesGallery videos={signedVideos} maxCount={50} />
           </div>
           <div className="w-full text-center">
-            <h2 className="text-2xl">All Sunsets</h2>
+            <h2 className="text-2xl mb-3">All Sunsets</h2>
             <VideoGallery videos={signedVideos} />
           </div>
         </div>

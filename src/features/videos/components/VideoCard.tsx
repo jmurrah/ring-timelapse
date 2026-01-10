@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Heart } from "lucide-react";
+import { useState } from "react";
+import { ArrowDownToLine, Star } from "lucide-react";
 import type { SignedVideo } from "@/features/videos/services/getSignedVideos";
-import {
-  getCachedVideoBlob,
-  fetchAndCacheVideo,
-} from "@/features/videos/utils/videoBlobCache";
+import { fetchAndCacheVideo } from "@/features/videos/utils/videoBlobCache";
+import { VideoPlayer } from "@/features/videos/components/VideoPlayer";
 
 type VideoCardProps = {
   video: SignedVideo;
@@ -29,85 +27,71 @@ export function VideoCard({
   isFavorited,
   onToggleFavorite,
 }: VideoCardProps) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  const [hasTriggeredCache, setHasTriggeredCache] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const handleDownload = async () => {
+    try {
+      const existingUrl = resolvedSrc;
+      const downloadUrl =
+        existingUrl && existingUrl.startsWith("blob:")
+          ? existingUrl
+          : await fetchAndCacheVideo(video.key, video.signedUrl);
 
-    const initializeSrc = async () => {
-      const cachedUrl = await getCachedVideoBlob(video.key);
-      if (cancelled) return;
-
-      if (cachedUrl) {
-        setSrc(cachedUrl);
-        setHasTriggeredCache(true);
-      } else {
-        setSrc(video.signedUrl);
-      }
-      setIsReady(true);
-    };
-
-    void initializeSrc();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [video.key, video.signedUrl]);
-
-  const handlePlay = () => {
-    if (hasTriggeredCache) return;
-    setHasTriggeredCache(true);
-
-    void fetchAndCacheVideo(video.key, video.signedUrl).then((blobUrl) => {
-      if (blobUrl.startsWith("blob:")) {
-        setSrc(blobUrl);
-      }
-    });
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = video.key.split("/").pop() ?? "sunset.mp4";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Failed to download video", error);
+    }
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950/60">
+    <div className="w-full max-w-xs overflow-hidden">
+      <VideoPlayer video={video} onSourceReady={setResolvedSrc} />
       <div
-        className="relative w-full bg-black"
-        style={{ aspectRatio: "16 / 9" }}
+        className="flex items-center justify-between px-2 pt-1 pb-2 border-t border-[var(--primary)] rounded-b-lg"
+        style={{
+          background:
+            "linear-gradient(180deg, color-mix(in srgb, var(--primary) 10%, transparent) 30%, color-mix(in srgb, var(--bg) 80%, transparent) 100%)",
+        }}
       >
-        {isReady && src ? (
-          <video
-            ref={videoRef}
-            className="block h-full w-full bg-black object-contain"
-            src={src}
-            controls
-            preload="metadata"
-            onPlay={handlePlay}
-          />
-        ) : (
-          <div className="h-full w-full" />
-        )}
-      </div>
-      <div className="flex items-center justify-between px-3 py-3">
-        <div className="text-xs text-gray-400">
+        <div className="text-sm text-[var(--text-muted)]">
           {formatDateTime(video.lastModified)}
         </div>
-        <button
-          type="button"
-          onClick={onToggleFavorite}
-          className="rounded p-1 transition-colors hover:bg-slate-800"
-          aria-label={
-            isFavorited ? "Remove from favorites" : "Add to favorites"
-          }
-        >
-          <Heart
-            size={18}
-            className={
-              isFavorited
-                ? "fill-red-500 text-red-500"
-                : "text-gray-400 hover:text-gray-300"
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="group rounded cursor-pointer"
+            aria-label="Download video"
+          >
+            <ArrowDownToLine
+              size={18}
+              className="text-[var(--text)] group-hover:text-[var(--primary)]"
+            />
+          </button>
+          <button
+            type="button"
+            onClick={onToggleFavorite}
+            className="group rounded cursor-pointer"
+            aria-label={
+              isFavorited ? "Remove from favorites" : "Add to favorites"
             }
-          />
-        </button>
+          >
+            <Star
+              size={18}
+              className={
+                isFavorited
+                  ? "text-[var(--primary-glow)]"
+                  : "text-[var(--text)] group-hover:text-[var(--primary-glow)]"
+              }
+              fill={isFavorited ? "currentColor" : "none"}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );
