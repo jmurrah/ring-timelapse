@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SHARED_SECRET_HEADER, USER_EMAIL_HEADER } from "@/constants/constants";
+import { SHARED_SECRET_HEADER, USER_EMAIL_HEADER } from "@/constants/headers";
 
 const ok = (body: unknown, status = 200) => NextResponse.json(body, { status });
 const err = (message: string, status = 400) =>

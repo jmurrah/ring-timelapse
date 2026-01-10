@@ -1,25 +1,21 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useMemo, useState } from "react";
 import {
   hasClientFavorites,
   initializeClientFavorites,
   setClientFavorites,
 } from "@/features/favorites/stores/favoritesStore";
 
-type FavoritesContextValue = {
+export type FavoritesContextValue = {
   favorites: Set<string>;
   isFavorite: (key: string) => boolean;
   toggleFavorite: (key: string) => void;
 };
 
-const FavoritesContext = createContext<FavoritesContextValue | null>(null);
+export const FavoritesContext = createContext<FavoritesContextValue | null>(
+  null,
+);
 
 type FavoritesProviderProps = {
   initialFavorites: string[];
@@ -30,13 +26,10 @@ export function FavoritesProvider({
   initialFavorites,
   children,
 }: FavoritesProviderProps) {
-  // Use existing client state if available, otherwise initialize from server
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     if (hasClientFavorites()) {
-      // We already have client-side state from a previous page - use it
       return initializeClientFavorites([]);
     }
-    // First load - initialize from server data
     return initializeClientFavorites(initialFavorites);
   });
 
@@ -50,7 +43,6 @@ export function FavoritesProvider({
       const currentlyFavorited = favorites.has(key);
       const newFavorited = !currentlyFavorited;
 
-      // Optimistic update - update UI immediately
       setFavorites((prev) => {
         const next = new Set(prev);
         if (newFavorited) {
@@ -58,12 +50,10 @@ export function FavoritesProvider({
         } else {
           next.delete(key);
         }
-        // Sync to global store so it persists across navigations
         setClientFavorites(next);
         return next;
       });
 
-      // Fire API call - don't block UI
       fetch("/api/favorites/toggle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,7 +63,6 @@ export function FavoritesProvider({
           if (!resp.ok) {
             const text = await resp.text();
             console.error("Toggle failed:", resp.status, text);
-            // Revert on failure
             setFavorites((prev) => {
               const reverted = new Set(prev);
               if (newFavorited) {
@@ -88,7 +77,6 @@ export function FavoritesProvider({
         })
         .catch((err) => {
           console.error("Toggle error:", err);
-          // Revert on error
           setFavorites((prev) => {
             const reverted = new Set(prev);
             if (newFavorited) {
@@ -114,12 +102,4 @@ export function FavoritesProvider({
       {children}
     </FavoritesContext.Provider>
   );
-}
-
-export function useFavorites() {
-  const ctx = useContext(FavoritesContext);
-  if (!ctx) {
-    throw new Error("useFavorites must be used within FavoritesProvider");
-  }
-  return ctx;
 }

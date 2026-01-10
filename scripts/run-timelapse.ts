@@ -10,7 +10,7 @@ import {
 } from "@/lib/ring/helpers";
 import { pollDownloadJob } from "@/lib/ring/downloadClip";
 import { getRing } from "@/lib/ring/client";
-import { MONTH_NAMES } from "@/constants/constants";
+import { MONTH_NAMES } from "@/constants/date";
 
 type Inputs = {
   startIso: string;

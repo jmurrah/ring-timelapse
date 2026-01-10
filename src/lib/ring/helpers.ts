@@ -9,7 +9,7 @@ import {
   RING_API_LANG,
   RING_APP_BRAND,
   RING_MOBILE_USER_AGENT,
-} from "@/constants/constants";
+} from "@/constants/ring";
 import { DownloadPayload } from "@/types/infra/ring";
 
 export const buildCustomFileName = (

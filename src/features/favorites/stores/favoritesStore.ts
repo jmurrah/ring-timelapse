@@ -14,11 +14,11 @@ export function hasClientFavorites(): boolean {
 
 export function initializeClientFavorites(keys: string[]): Set<string> {
   // Only initialize from server data if we haven't been initialized yet
-  if (!isInitialized) {
+  if (!isInitialized || !clientFavorites) {
     clientFavorites = new Set(keys);
     isInitialized = true;
   }
-  return clientFavorites!;
+  return clientFavorites;
 }
 
 export function setClientFavorites(favorites: Set<string>): void {

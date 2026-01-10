@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useFavorites } from "@/features/favorites/components/FavoritesProvider";
+import { useFavorites } from "@/features/favorites/hooks/useFavorites";
 import VideoGallery from "@/features/videos/components/VideoGallery";
 import type { SignedVideo } from "@/features/videos/services/getSignedVideos";
 
