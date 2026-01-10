@@ -8,6 +8,8 @@ export type SignedR2Url = {
   expiresAt: string;
 };
 
+const DEFAULT_CACHE_CONTROL = "public, max-age=86400, immutable";
+
 export const signR2GetObjectUrl = async (
   key: string,
   expiresInSeconds: number,
@@ -18,6 +20,7 @@ export const signR2GetObjectUrl = async (
   const command = new GetObjectCommand({
     Bucket: bucket,
     Key: key,
+    ResponseCacheControl: DEFAULT_CACHE_CONTROL,
   });
 
   const url = await getSignedUrl(client, command, {

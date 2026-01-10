@@ -1,6 +1,6 @@
 import localFont from "next/font/local";
 import "./globals.css";
-import Footer from "@/components/common/Footer";
+import "react-loading-skeleton/dist/skeleton.css";
 import LayoutContainer from "@/components/common/LayoutContainer";
 
 const barlow = localFont({
@@ -50,7 +50,6 @@ export default function RootLayout({
         <main className="flex-1 flex px-4 pt-4 justify-center">
           <LayoutContainer>{children}</LayoutContainer>
         </main>
-        <Footer />
       </body>
     </html>
   );

@@ -1,224 +1,128 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useFavoritesManager } from "@/features/videos/hooks/useFavoritesManager";
-import type { R2VideoObject } from "@/types/infra/r2";
+import { useEffect, useRef, useState } from "react";
+import type { SignedVideo } from "@/features/videos/services/getSignedVideos";
+import {
+  getCachedVideoBlob,
+  fetchAndCacheVideo,
+} from "@/features/videos/utils/videoBlobCache";
 
-type LoadState = "idle" | "loading" | "loaded" | "error";
+export enum GalleryType {
+  Favorite = "favorite",
+  Recent = "recent",
+}
 
-type VideoListResponse = {
-  items: R2VideoObject[];
-};
-
-type SignedUrlResponse = {
-  url: string;
-  expiresAt: string;
+export type VideoGalleryProps = {
+  galleryType: GalleryType;
+  videoCount: number;
+  videos: SignedVideo[];
 };
 
 const formatDateTime = (iso: string): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString();
-};
-
-const formatSize = (bytes: number): string => {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "-";
-  const mb = bytes / (1024 * 1024);
-  if (mb < 1) {
-    const kb = bytes / 1024;
-    return `${kb.toFixed(1)} KB`;
-  }
-  return `${mb.toFixed(1)} MB`;
-};
-
-const fetchVideoList = async (): Promise<VideoListResponse> => {
-  const resp = await fetch("/api/videos", { cache: "force-cache" });
-  if (!resp.ok) throw new Error(`Failed to load videos: ${resp.status}`);
-  return resp.json();
-};
-
-const signVideoUrl = async (key: string): Promise<SignedUrlResponse> => {
-  const resp = await fetch(`/api/videos/sign?key=${encodeURIComponent(key)}`, {
-    cache: "no-store",
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
-  if (!resp.ok) {
-    const errorText = await resp.text();
-    throw new Error(
-      `Failed to sign video (${resp.status}): ${errorText || "unknown error"}`,
-    );
-  }
-  return resp.json();
 };
 
-export default function VideoGallery() {
-  const [videos, setVideos] = useState<R2VideoObject[]>([]);
-  const [listState, setListState] = useState<LoadState>("idle");
-  const [listError, setListError] = useState<string | null>(null);
-  const [showLovedOnly, setShowLovedOnly] = useState(false);
+type VideoCardProps = {
+  video: SignedVideo;
+};
 
-  const {
-    effectiveFavorites,
-    favoritesError,
-    favoritesState,
-    isPending,
-    toggleFavorite,
-    refreshServerFavorites,
-  } = useFavoritesManager();
+function VideoCard({ video }: VideoCardProps) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [hasTriggeredCache, setHasTriggeredCache] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [signing, setSigning] = useState(false);
-  const [signError, setSignError] = useState<string | null>(null);
-
-  const retriedRef = useRef(false);
-  const currentKeyRef = useRef<string | null>(null);
-
-  const loadVideos = useCallback(async () => {
-    setListState("loading");
-    setListError(null);
-    try {
-      const data = await fetchVideoList();
-      setVideos(data.items);
-      setListState("loaded");
-    } catch (error) {
-      setListState("error");
-      setListError(error instanceof Error ? error.message : "Unknown error");
-    }
-  }, []);
-
+  // Check IndexedDB for cached blob on mount, then set src
   useEffect(() => {
-    void loadVideos();
-    void refreshServerFavorites();
-  }, [loadVideos, refreshServerFavorites]);
+    let cancelled = false;
 
-  const requestSignedUrl = useCallback(async (key: string) => {
-    setActiveKey(key);
-    setSigning(true);
-    setSignError(null);
-    setSignedUrl(null);
-    retriedRef.current = false;
-    currentKeyRef.current = key;
-    try {
-      const signed = await signVideoUrl(key);
-      if (currentKeyRef.current !== key) return;
-      setSignedUrl(signed.url);
-      setActiveKey(key);
-    } catch (error) {
-      if (currentKeyRef.current !== key) return;
-      setSignError(
-        error instanceof Error ? error.message : "Failed to sign URL",
-      );
-      setSignedUrl(null);
-      setActiveKey(key);
-    } finally {
-      if (currentKeyRef.current === key) {
-        setSigning(false);
+    const initializeSrc = async () => {
+      const cachedUrl = await getCachedVideoBlob(video.key);
+      if (cancelled) return;
+
+      if (cachedUrl) {
+        setSrc(cachedUrl);
+        setHasTriggeredCache(true);
+      } else {
+        setSrc(video.signedUrl);
       }
-    }
-  }, []);
+      setIsReady(true);
+    };
 
-  const handleVideoError = useCallback(() => {
-    if (!activeKey) return;
-    if (retriedRef.current) {
-      setSignError("Playback failed. Please try again later.");
-      return;
-    }
-    retriedRef.current = true;
-    void requestSignedUrl(activeKey);
-  }, [activeKey, requestSignedUrl]);
+    void initializeSrc();
 
-  const visibleVideos = useMemo(() => {
-    if (!showLovedOnly) return videos;
-    return videos.filter((v) => effectiveFavorites.has(v.key));
-  }, [effectiveFavorites, showLovedOnly, videos]);
+    return () => {
+      cancelled = true;
+    };
+  }, [video.key, video.signedUrl]);
+
+  // On play, fetch and cache blob in background (non-blocking)
+  const handlePlay = () => {
+    if (hasTriggeredCache) return;
+    setHasTriggeredCache(true);
+
+    // Fetch and cache in background - don't block playback
+    void fetchAndCacheVideo(video.key, video.signedUrl).then((blobUrl) => {
+      if (blobUrl.startsWith("blob:")) {
+        setSrc(blobUrl);
+      }
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-2xl">Videos</h2>
-          {listState === "loading" ? <span>Loading...</span> : null}
-          {listError ? <span className="text-red-500">{listError}</span> : null}
-          {favoritesState === "loading" ? (
-            <span className="text-sm text-[var(--text-muted)]">
-              Loading favorites...
-            </span>
-          ) : null}
-          {favoritesError ? (
-            <span className="text-sm text-red-500">{favoritesError}</span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {visibleVideos.length === 0 && listState === "loaded" ? (
-          <p>No videos available.</p>
-        ) : null}
-        {visibleVideos.map((video) => {
-          const isFav = effectiveFavorites.has(video.key);
-          const pending = isPending(video.key);
-          return (
-            <div
-              key={video.key}
-              className="w-full flex flex-col gap-1 border p-2 rounded"
-            >
-              <div className="w-full flex items-start justify-between gap-2">
-                <button
-                  type="button"
-                  className="text-left flex-1"
-                  onClick={() => requestSignedUrl(video.key)}
-                  disabled={signing && activeKey === video.key}
-                >
-                  <span className="font-medium">{video.key}</span>
-                  <span className="block text-sm text-[var(--text-muted)]">
-                    {formatDateTime(video.lastModified)} -{" "}
-                    {formatSize(video.size)}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="text-xl px-2"
-                  onClick={() => toggleFavorite(video.key)}
-                  aria-pressed={isFav}
-                  aria-label={isFav ? "Unlove" : "Love"}
-                  disabled={pending && favoritesState === "loading"}
-                >
-                  {isFav ? "★" : "☆"}
-                </button>
-              </div>
-              {pending ? (
-                <span className="text-xs text-[var(--text-muted)]">
-                  Syncing favorite...
-                </span>
-              ) : null}
-              {signing && activeKey === video.key ? (
-                <span className="text-xs text-[var(--text-muted)]">
-                  Signing...
-                </span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h3 className="text-xl">{activeKey ?? "Select a video"}</h3>
-        {signError ? <p className="text-red-500 text-sm">{signError}</p> : null}
-        {signedUrl ? (
+    <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950/60">
+      <div
+        className="relative w-full bg-black"
+        style={{ aspectRatio: "16 / 9" }}
+      >
+        {isReady && src ? (
           <video
-            key={signedUrl}
-            src={signedUrl}
+            ref={videoRef}
+            className="block h-full w-full bg-black object-contain"
+            src={src}
             controls
-            className="w-full"
-            onError={handleVideoError}
-            autoPlay
+            preload="metadata"
+            onPlay={handlePlay}
           />
         ) : (
-          <p className="text-sm text-[var(--text-muted)]">
-            Select a video to start playback.
-          </p>
+          <div className="h-full w-full" />
         )}
       </div>
+      <div className="px-3 py-3 text-xs">
+        <div className="text-gray-400">
+          {formatDateTime(video.lastModified)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function VideoGallery({
+  galleryType,
+  videoCount,
+  videos,
+}: VideoGalleryProps) {
+  const displayVideos = videos.slice(0, videoCount);
+  const emptyStateText =
+    galleryType === GalleryType.Favorite
+      ? "No favorite videos to display."
+      : "No videos to display.";
+
+  if (displayVideos.length === 0) {
+    return <div className="text-sm text-gray-400">{emptyStateText}</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+      {displayVideos.map((video) => (
+        <VideoCard key={video.key} video={video} />
+      ))}
     </div>
   );
 }

@@ -74,6 +74,16 @@ const formatSunset = (date: Date | null): string => {
   }).format(date);
 };
 
+const formatSunsetDate = (date: Date | null): string => {
+  if (!isValidDate(date)) return "Unavailable";
+  return new Intl.DateTimeFormat(TIME_LOCALE, {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+    timeZone: APP_TIME_ZONE,
+  }).format(date);
+};
+
 const formatCountdownCompact = (target: Date | null, now: Date): string => {
   if (!isValidDate(target)) {
     return "--:--:--";
@@ -137,6 +147,10 @@ export default function SunsetCountdown({
 
   const clock = useMemo(() => formatClock(now), [now]);
   const sunsetLabel = useMemo(() => formatSunset(sunsetTime), [sunsetTime]);
+  const sunsetDateLabel = useMemo(
+    () => formatSunsetDate(sunsetTime),
+    [sunsetTime],
+  );
   const countdownCompact = useMemo(
     () => formatCountdownCompact(sunsetTime, now),
     [sunsetTime, now],
@@ -149,18 +163,21 @@ export default function SunsetCountdown({
           {`\u{1F4CD}`} {label}
         </p>
         <div className="flex items-center gap-1.5 text-sm">
-          <span>{clock}</span>
+          <span suppressHydrationWarning>{clock}</span>
           <span>{timeZoneName}</span>
         </div>
       </div>
       <div className="w-full flex flex-col gap-2 items-center">
         <p className="text-xl">
-          Sunset at {sunsetLabel} {timeZoneName}
+          Sunset at {sunsetLabel} on {sunsetDateLabel}.
         </p>
         <div className="w-full flex justify-center items-center gap-2 text-2xl bg-[var(--accent)] p-2 rounded-lg">
           <span aria-hidden className="icon-clock-count" />
           <div className="text-center">
-            <p className="text-[var(--bg)] font-semibold">
+            <p
+              className="text-[var(--bg)] font-semibold"
+              suppressHydrationWarning
+            >
               {countdownCompact} until next sunset.
             </p>
           </div>

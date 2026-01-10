@@ -114,14 +114,13 @@ export default {
           limit,
         });
 
-        const keys = (result.keys || []).map((k) =>
-          k.name.slice(KEY_PREFIX.length),
-        );
+        const keys = result.keys.map((k) => k.name.slice(KEY_PREFIX.length));
+        const nextCursor = result.list_complete ? null : result.cursor;
 
         return json({
           keys,
-          cursor: result.cursor || null,
-          listComplete: !!result.list_complete,
+          cursor: nextCursor,
+          listComplete: result.list_complete,
         });
       }
 

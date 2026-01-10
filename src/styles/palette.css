@@ -15,16 +15,16 @@
   --primary-glow: #f0b35a;
 
   /* Hover intensity (primary weight in color-mix) */
-  --hover-primary-mix: 80%;
+  --hover-primary-mix: 75%;
   --button-hover-primary: color-mix(
     in srgb,
     var(--primary) var(--hover-primary-mix),
-    white
+    var(--text)
   );
   --button-hover-accent: color-mix(
     in srgb,
     var(--accent) var(--hover-primary-mix),
-    white
+    var(--text)
   );
 
   --background: var(--bg);

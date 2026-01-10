@@ -3,11 +3,11 @@
 import { signOutFromApp } from "../services/authClient";
 
 type SignOutButtonProps = {
-  label?: string;
+  ariaLabel?: string;
 };
 
 export default function SignOutButton({
-  label = "Sign out",
+  ariaLabel = "Sign out",
 }: SignOutButtonProps) {
   const handleClick = async () => {
     try {
@@ -18,8 +18,13 @@ export default function SignOutButton({
   };
 
   return (
-    <button type="button" onClick={handleClick} className="link-underline">
-      <h2>{label}</h2>
+    <button
+      type="button"
+      onClick={handleClick}
+      aria-label={ariaLabel}
+      className="sign-out-icon flex items-center"
+    >
+      <span aria-hidden className="sign-out-icon" />
     </button>
   );
 }
