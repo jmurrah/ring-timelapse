@@ -2,7 +2,6 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "../services/authClient";
 
@@ -15,19 +14,17 @@ export default function GoogleSignInButton({
   onStarted,
   onSettled,
 }: GoogleSignInButtonProps) {
-  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleClick = async () => {
     try {
       setErrorMessage(null);
       onStarted?.();
+      // signInWithGoogle will redirect the page, so code after this won't execute
       await signInWithGoogle();
-      router.replace("/");
     } catch (error) {
       setErrorMessage("Failed to sign in with Google. Please try again.");
       console.error("Google sign-in failed", error);
-    } finally {
       onSettled?.();
     }
   };
