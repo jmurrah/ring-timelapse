@@ -33,6 +33,7 @@ export const useSunsetCalculations = (
   initialSunsetIso: string,
   latitude: number,
   longitude: number,
+  now: Date,
 ) => {
   const parseSunsetIso = (value: string): Date | null => {
     const parsed = new Date(value);
@@ -52,24 +53,18 @@ export const useSunsetCalculations = (
       return;
     }
 
-    const checkInterval = setInterval(() => {
-      const now = new Date();
+    if (sunsetTime && sunsetTime.getTime() > now.getTime()) {
+      return;
+    }
 
-      if (sunsetTime && sunsetTime.getTime() > now.getTime()) {
-        return;
-      }
-
-      const upcomingSunset = findNextSunset(now, latitude, longitude);
-      if (
-        upcomingSunset &&
-        (!sunsetTime || upcomingSunset.getTime() !== sunsetTime.getTime())
-      ) {
-        setSunsetTime(upcomingSunset);
-      }
-    }, 60000);
-
-    return () => clearInterval(checkInterval);
-  }, [latitude, longitude, sunsetTime]);
+    const upcomingSunset = findNextSunset(now, latitude, longitude);
+    if (
+      upcomingSunset &&
+      (!sunsetTime || upcomingSunset.getTime() !== sunsetTime.getTime())
+    ) {
+      setSunsetTime(upcomingSunset);
+    }
+  }, [latitude, longitude, now, sunsetTime]);
 
   return sunsetTime;
 };

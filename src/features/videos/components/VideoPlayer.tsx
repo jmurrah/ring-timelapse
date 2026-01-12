@@ -22,6 +22,7 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [posterImage, setPosterImage] = useState<string | null>(null);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -46,20 +47,13 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
         if (cancelled) return;
 
         const resolved = cachedUrl || video.signedUrl;
-        const srcWithFragment =
-          resolved.startsWith("blob:") || resolved.includes("#")
-            ? resolved
-            : `${resolved}#t=0.001`;
-        setSrc(srcWithFragment);
+        setSrc(resolved);
         setIsReady(true);
         onSourceReady?.(resolved);
       } catch (error) {
         console.error("Failed to initialize video src:", error);
         if (!cancelled) {
-          const fallbackSrc = video.signedUrl.includes("#")
-            ? video.signedUrl
-            : `${video.signedUrl}#t=0.001`;
-          setSrc(fallbackSrc);
+          setSrc(video.signedUrl);
           setIsReady(true);
           onSourceReady?.(video.signedUrl);
         }
@@ -116,51 +110,52 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     };
   }, []);
 
+  const isVideoReady = posterImage || hasLoadedData;
+
   return (
     <div
       ref={containerRef}
       className="relative w-full bg-black"
       style={{ aspectRatio: "16 / 9" }}
     >
-      {isReady && src ? (
-        <video
-          ref={videoRef}
-          className="block h-full w-full bg-black object-contain"
-          src={src}
-          poster={posterImage || undefined}
-          onLoadedMetadata={handleLoadedMetadata}
-          onTimeUpdate={handleTimeUpdate}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onError={(e) => {
-            const videoElement = e.currentTarget;
-            const errorDetails = {
-              code: videoElement.error?.code,
-              message: videoElement.error?.message,
-              src: src,
-              networkState: videoElement.networkState,
-              readyState: videoElement.readyState,
-            };
-            console.error("Video error details:", errorDetails);
+      <video
+        ref={videoRef}
+        className="block h-full w-full bg-black object-contain"
+        src={src || undefined}
+        poster={posterImage || undefined}
+        onLoadedMetadata={handleLoadedMetadata}
+        onLoadedData={() => setHasLoadedData(true)}
+        onTimeUpdate={handleTimeUpdate}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onError={(e) => {
+          const videoElement = e.currentTarget;
+          const errorDetails = {
+            code: videoElement.error?.code,
+            message: videoElement.error?.message,
+            src: src,
+            networkState: videoElement.networkState,
+            readyState: videoElement.readyState,
+          };
+          console.error("Video error details:", errorDetails);
 
-            if (videoElement.error?.code) {
-              console.error(`Media error code ${videoElement.error.code}`);
-            }
+          if (videoElement.error?.code) {
+            console.error(`Media error code ${videoElement.error.code}`);
+          }
 
-            if (src.startsWith("blob:")) {
-              console.log("Blob URL failed, attempting fallback to signed URL");
-              const fallbackSrc = video.signedUrl.includes("#")
-                ? video.signedUrl
-                : `${video.signedUrl}#t=0.001`;
-              setSrc(fallbackSrc);
-            }
-          }}
-          preload="metadata"
-          playsInline
-        />
-      ) : (
-        <div className="h-full w-full" />
-      )}
+          if (src?.startsWith("blob:")) {
+            console.log("Blob URL failed, attempting fallback to signed URL");
+            setSrc(video.signedUrl);
+            setHasLoadedData(false);
+          }
+        }}
+        preload="metadata"
+        playsInline
+        style={{
+          opacity: isVideoReady ? 1 : 0,
+          pointerEvents: isVideoReady ? "auto" : "none",
+        }}
+      />
       <div
         className="absolute inset-x-0 top-0 cursor-pointer"
         style={{ bottom: "56px", transform: "translateZ(1px)" }}

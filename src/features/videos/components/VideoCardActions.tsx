@@ -17,6 +17,13 @@ export function VideoCardActions({
 }: VideoCardActionsProps) {
   const handleDownload = async () => {
     try {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        window.open(video.signedUrl, "_blank");
+        return;
+      }
+
       const existingUrl = resolvedSrc;
       const downloadUrl =
         existingUrl && existingUrl.startsWith("blob:")
