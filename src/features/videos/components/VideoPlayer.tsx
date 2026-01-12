@@ -22,7 +22,6 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [posterImage, setPosterImage] = useState<string | null>(null);
-  const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -91,38 +90,21 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     };
   }, [src]);
 
-  const handlePlay = () => {
-    if (hasTriggeredCache) return;
-    setHasTriggeredCache(true);
-
-    void fetchAndCacheVideo(video.key, video.signedUrl).then((blobUrl) => {
-      if (blobUrl.startsWith("blob:")) {
-        // Add #t=0.001 fragment to hint Safari to load first frame
-        const srcWithFragment = blobUrl.includes("#")
-          ? blobUrl
-          : `${blobUrl}#t=0.001`;
-        setSrc(srcWithFragment);
-        onSourceReady?.(blobUrl);
-      }
-    });
-  };
-
   const togglePlayback = () => {
     const element = videoRef.current;
     if (!element) return;
 
     if (element.paused) {
-      // Check if we need to fetch the cached version
+      // Trigger caching in background for future use (but don't switch src mid-playback)
       if (!hasTriggeredCache) {
-        // First play - trigger cache and set flag to auto-play when ready
-        setShouldAutoPlay(true);
-        handlePlay();
-      } else {
-        // Source is ready, play immediately
-        void element.play().catch((error) => {
-          console.error("Unable to start playback", error);
-        });
+        setHasTriggeredCache(true);
+        void fetchAndCacheVideo(video.key, video.signedUrl);
       }
+
+      // Play immediately from current src
+      void element.play().catch((error) => {
+        console.error("Unable to start playback", error);
+      });
     } else {
       element.pause();
     }
@@ -132,19 +114,6 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     const element = videoRef.current;
     if (!element) return;
     setDuration(element.duration || 0);
-  };
-
-  const handleCanPlay = () => {
-    const element = videoRef.current;
-    if (!element) return;
-
-    // If we set the flag to auto-play after loading, do it now
-    if (shouldAutoPlay) {
-      setShouldAutoPlay(false);
-      void element.play().catch((error) => {
-        console.error("Unable to start playback", error);
-      });
-    }
   };
 
   const handleTimeUpdate = () => {
@@ -189,7 +158,6 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
           src={src}
           poster={posterImage || undefined}
           onLoadedMetadata={handleLoadedMetadata}
-          onCanPlay={handleCanPlay}
           onTimeUpdate={handleTimeUpdate}
           onPlay={() => {
             setIsPlaying(true);
