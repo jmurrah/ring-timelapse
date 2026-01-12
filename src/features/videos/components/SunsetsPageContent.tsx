@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { SignedVideo } from "@/features/videos/services/getSignedVideos";
 import VideoGallery from "@/features/videos/components/VideoGallery";
@@ -36,10 +37,18 @@ export function SunsetsPageContent({ videos }: SunsetsPageContentProps) {
       return videos;
     }
 
-    // Normalize query: remove slashes, dashes, commas, ordinal suffixes
-    const normalizedQuery = trimmedQuery
-      .replace(/[\s,\-\/]+/g, "")
-      .replace(/(\d+)(st|nd|rd|th)/g, "$1");
+    // Split query by spaces to create multiple filter terms
+    const queryTerms = trimmedQuery
+      .split(/\s+/)
+      .map((term) =>
+        // Normalize each term: remove slashes, dashes, commas, ordinal suffixes
+        term.replace(/[,\-\/]+/g, "").replace(/(\d+)(st|nd|rd|th)/g, "$1"),
+      )
+      .filter((term) => term.length > 0);
+
+    if (queryTerms.length === 0) {
+      return videos;
+    }
 
     return videos.filter((video) => {
       // Video keys are just filenames like "20260110_sunset.mp4"
@@ -70,8 +79,8 @@ export function SunsetsPageContent({ videos }: SunsetsPageContentProps) {
         .join(" ")
         .toLowerCase();
 
-      // Simple contains check
-      return searchableString.includes(normalizedQuery);
+      // All query terms must match (AND logic)
+      return queryTerms.every((term) => searchableString.includes(term));
     });
   }, [query, videos]);
 
@@ -81,17 +90,27 @@ export function SunsetsPageContent({ videos }: SunsetsPageContentProps) {
     <div className="flex h-full w-full flex-col gap-10">
       <div className="text-center">
         <h1 className="text-3xl">Sunsets</h1>
-        <p className="text-[var(--text-muted)]">
-          Browse your archive of captured sunsets.
-        </p>
-        <div className="mx-auto mt-4 w-full max-w-md">
+        <div className="mx-auto mt-2 w-full max-w-md relative border-[var(--accent)]">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            size={18}
+          />
           <Input
             type="text"
-            placeholder="Search by date (e.g., 10, ja, jan 18th, 2026)"
+            placeholder="Search by date..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="text-center"
+            className="pl-10 pr-10 text-[var(--text)]"
           />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text)] cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
       </div>
       <div className="flex flex-col gap-10">

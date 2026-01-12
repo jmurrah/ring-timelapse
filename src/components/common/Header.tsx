@@ -19,14 +19,12 @@ export default async function Header() {
 
   return (
     <header className="mb-8 w-full flex flex-col gap-4">
-      <div className="w-fill flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-3xl text-[var(--primary)]">
-            <h1>analemma</h1>
-          </Link>
-        </div>
+      <div className="w-fill flex flex-wrap gap-3">
+        <Link href="/" className="text-3xl text-[var(--primary)]">
+          <h1>analemma</h1>
+        </Link>
         {session && (
-          <div className="flex items-center justify-center gap-10 text-lg">
+          <div className="flex items-center justify-center gap-4 text-lg ml-auto">
             <Link href="/" className="link-underline">
               Home
             </Link>
