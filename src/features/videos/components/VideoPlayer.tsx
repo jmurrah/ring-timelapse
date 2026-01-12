@@ -90,7 +90,8 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     };
   }, [src]);
 
-  const togglePlayback = () => {
+  const togglePlayback = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const element = videoRef.current;
     if (!element) return;
 
@@ -131,7 +132,8 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     setCurrentTime(newTime);
   };
 
-  const handleFullscreen = () => {
+  const handleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const container = containerRef.current;
     if (!container) return;
 
@@ -152,9 +154,7 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
       {isReady && src ? (
         <video
           ref={videoRef}
-          className="block h-full w-full bg-black object-contain cursor-pointer"
-          role="button"
-          aria-label={isPlaying ? "Pause video" : "Play video"}
+          className="block h-full w-full bg-black object-contain"
           src={src}
           poster={posterImage || undefined}
           onLoadedMetadata={handleLoadedMetadata}
@@ -165,18 +165,29 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
           onPause={() => setIsPlaying(false)}
           preload="metadata"
           playsInline
-          onClick={togglePlayback}
         />
       ) : (
         <div className="h-full w-full" />
       )}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      {/* Transparent overlay for click-to-play (doesn't interfere with controls) */}
+      <div
+        className="absolute inset-0 cursor-pointer"
+        style={{ touchAction: "manipulation" }}
+        onClick={togglePlayback}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        style={{ zIndex: 10 }}
+      >
         {!isPlaying && (
           <button
             type="button"
             onClick={togglePlayback}
             className="pointer-events-auto flex items-center justify-center rounded-full p-4 text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
-            style={{ backgroundColor: "var(--surface2)" }}
+            style={{
+              backgroundColor: "var(--surface2)",
+              touchAction: "manipulation",
+            }}
             aria-label="Play video"
           >
             <Play size={28} />
@@ -188,12 +199,19 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
         style={{
           background:
             "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--surface) 80%, transparent) 40%, var(--surface) 100%)",
+          zIndex: 10,
+          touchAction: "manipulation",
         }}
       >
         <button
           type="button"
           onClick={togglePlayback}
           className="flex size-10 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
+          style={{
+            touchAction: "manipulation",
+            minWidth: "44px",
+            minHeight: "44px",
+          }}
           aria-label={isPlaying ? "Pause video" : "Play video"}
         >
           {isPlaying ? <Pause size={18} /> : <Play size={18} />}
@@ -206,12 +224,17 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
           value={currentTime}
           onChange={handleSeek}
           className="w-full cursor-pointer"
-          style={{ accentColor: "var(--primary)" }}
+          style={{ accentColor: "var(--primary)", touchAction: "none" }}
         />
         <button
           type="button"
           onClick={handleFullscreen}
           className="flex size-10 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
+          style={{
+            touchAction: "manipulation",
+            minWidth: "44px",
+            minHeight: "44px",
+          }}
           aria-label="Toggle fullscreen"
         >
           <Maximize2 size={18} />
