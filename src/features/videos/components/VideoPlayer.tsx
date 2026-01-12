@@ -34,7 +34,11 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
       if (cancelled) return;
 
       const resolved = cachedUrl || video.signedUrl;
-      setSrc(resolved);
+      // Add #t=0.001 fragment to hint Safari to load first frame
+      const srcWithFragment = resolved.includes("#")
+        ? resolved
+        : `${resolved}#t=0.001`;
+      setSrc(srcWithFragment);
       setIsReady(true);
       onSourceReady?.(resolved);
     };
@@ -93,7 +97,11 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
 
     void fetchAndCacheVideo(video.key, video.signedUrl).then((blobUrl) => {
       if (blobUrl.startsWith("blob:")) {
-        setSrc(blobUrl);
+        // Add #t=0.001 fragment to hint Safari to load first frame
+        const srcWithFragment = blobUrl.includes("#")
+          ? blobUrl
+          : `${blobUrl}#t=0.001`;
+        setSrc(srcWithFragment);
         onSourceReady?.(blobUrl);
       }
     });

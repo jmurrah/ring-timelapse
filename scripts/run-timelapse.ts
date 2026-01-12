@@ -119,7 +119,7 @@ function spawnFfmpeg(
     "-crf",
     "23",
     "-movflags",
-    "frag_keyframe+empty_moov+default_base_moof",
+    "+faststart",
     "-an",
     "-f",
     "mp4",
