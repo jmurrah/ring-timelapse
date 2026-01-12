@@ -9,6 +9,12 @@ import {
 } from "@/features/videos/utils/videoBlobCache";
 import { generatePosterFromVideo } from "@/features/videos/utils/generatePoster";
 
+// Extend HTMLVideoElement to include webkit fullscreen methods
+interface WebKitHTMLVideoElement extends HTMLVideoElement {
+  webkitEnterFullscreen?: () => void;
+  webkitExitFullscreen?: () => void;
+}
+
 type VideoPlayerProps = {
   video: SignedVideo;
   onSourceReady?: (src: string) => void;
@@ -34,10 +40,11 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
         if (cancelled) return;
 
         const resolved = cachedUrl || video.signedUrl;
-        // Add #t=0.001 fragment to hint Safari to load first frame
-        const srcWithFragment = resolved.includes("#")
-          ? resolved
-          : `${resolved}#t=0.001`;
+        // Only add #t=0.001 fragment to signed URLs (not blob URLs) to hint Safari to load first frame
+        const srcWithFragment =
+          resolved.startsWith("blob:") || resolved.includes("#")
+            ? resolved
+            : `${resolved}#t=0.001`;
         setSrc(srcWithFragment);
         setIsReady(true);
         onSourceReady?.(resolved);
@@ -62,9 +69,9 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     };
   }, [onSourceReady, video.key, video.signedUrl]);
 
-  // Generate poster image when we have a blob URL
+  // Generate poster image when we have a blob URL and metadata is loaded
   useEffect(() => {
-    if (!src || !src.startsWith("blob:")) {
+    if (!src || !src.startsWith("blob:") || !isReady || duration === 0) {
       return;
     }
 
@@ -72,6 +79,10 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
 
     const generatePoster = async () => {
       try {
+        // Wait a bit to ensure video has fully loaded before generating poster
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (cancelled) return;
+
         const response = await fetch(src);
         const blob = await response.blob();
         if (cancelled) return;
@@ -92,16 +103,17 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     return () => {
       cancelled = true;
     };
-  }, [src]);
+  }, [src, isReady, duration]);
 
-  // Cleanup blob URL on unmount
+  // Cleanup blob URL on unmount only (not on src change)
   useEffect(() => {
+    const currentSrc = src;
     return () => {
-      if (src?.startsWith("blob:")) {
-        URL.revokeObjectURL(src);
+      if (currentSrc?.startsWith("blob:")) {
+        URL.revokeObjectURL(currentSrc);
       }
     };
-  }, [src]);
+  }, []); // Only run on mount/unmount
 
   const togglePlayback = () => {
     const element = videoRef.current;
@@ -145,6 +157,23 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
   };
 
   const handleFullscreen = () => {
+    const video = videoRef.current as WebKitHTMLVideoElement | null;
+    if (!video) return;
+
+    // iOS Safari requires webkitEnterFullscreen on the video element
+    if (
+      "webkitEnterFullscreen" in video &&
+      typeof video.webkitEnterFullscreen === "function"
+    ) {
+      try {
+        video.webkitEnterFullscreen();
+        return;
+      } catch (error) {
+        console.error("webkitEnterFullscreen failed:", error);
+      }
+    }
+
+    // Standard fullscreen API for other browsers
     const container = containerRef.current;
     if (!container) return;
 
@@ -175,9 +204,24 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
           }}
           onPause={() => setIsPlaying(false)}
           onError={(e) => {
-            console.error("Video error:", e);
-            // Try to recover by using signed URL
+            const videoElement = e.currentTarget;
+            const errorDetails = {
+              code: videoElement.error?.code,
+              message: videoElement.error?.message,
+              src: src,
+              networkState: videoElement.networkState,
+              readyState: videoElement.readyState,
+            };
+            console.error("Video error details:", errorDetails);
+
+            // MediaError codes: 1=ABORTED, 2=NETWORK, 3=DECODE, 4=NOT_SUPPORTED
+            if (videoElement.error?.code) {
+              console.error(`Media error code ${videoElement.error.code}`);
+            }
+
+            // Try to recover by using signed URL if blob fails
             if (src.startsWith("blob:")) {
+              console.log("Blob URL failed, attempting fallback to signed URL");
               const fallbackSrc = video.signedUrl.includes("#")
                 ? video.signedUrl
                 : `${video.signedUrl}#t=0.001`;
@@ -193,8 +237,8 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
       {/* Click-to-play overlay - stops before control bar */}
       <div
         className="absolute inset-x-0 top-0 cursor-pointer"
-        style={{ bottom: "56px" }}
-        onClick={togglePlayback}
+        style={{ bottom: "56px", transform: "translateZ(1px)" }}
+        onPointerUp={togglePlayback}
         role="button"
         tabIndex={0}
         aria-label={isPlaying ? "Pause video" : "Play video"}
@@ -204,12 +248,15 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
       {!isPlaying && (
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{ zIndex: 20 }}
+          style={{ zIndex: 20, transform: "translateZ(2px)" }}
         >
           <div
-            onClick={togglePlayback}
+            onPointerUp={togglePlayback}
             className="pointer-events-auto flex items-center justify-center rounded-full p-4 text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
-            style={{ backgroundColor: "var(--surface2)" }}
+            style={{
+              backgroundColor: "var(--surface2)",
+              transform: "translateZ(1px)",
+            }}
             role="button"
             tabIndex={0}
             aria-label="Play video"
@@ -226,13 +273,14 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
           background:
             "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--surface) 80%, transparent) 40%, var(--surface) 100%)",
           zIndex: 20,
+          transform: "translateZ(2px)",
         }}
       >
         <div
-          onClick={togglePlayback}
+          onPointerUp={togglePlayback}
           className="flex shrink-0 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
           style={{
-            width: "40px",
+            width: "32px",
             height: "40px",
           }}
           role="button"
@@ -252,10 +300,10 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
           style={{ accentColor: "var(--primary)" }}
         />
         <div
-          onClick={handleFullscreen}
+          onPointerUp={handleFullscreen}
           className="flex shrink-0 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
           style={{
-            width: "40px",
+            width: "32px",
             height: "40px",
           }}
           role="button"
