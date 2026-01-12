@@ -90,8 +90,7 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     };
   }, [src]);
 
-  const togglePlayback = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
+  const togglePlayback = () => {
     const element = videoRef.current;
     if (!element) return;
 
@@ -132,8 +131,7 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
     setCurrentTime(newTime);
   };
 
-  const handleFullscreen = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFullscreen = () => {
     const container = containerRef.current;
     if (!container) return;
 
@@ -169,49 +167,47 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
       ) : (
         <div className="h-full w-full" />
       )}
-      {/* Transparent overlay for click-to-play - excludes bottom control area */}
+      {/* Click-to-play overlay - stops before control bar */}
       <div
         className="absolute inset-x-0 top-0 cursor-pointer"
-        style={{ bottom: "48px", touchAction: "manipulation" }}
+        style={{ bottom: "56px" }}
         onClick={togglePlayback}
       />
-      <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        style={{ zIndex: 10 }}
-      >
-        {!isPlaying && (
+
+      {/* Center play button */}
+      {!isPlaying && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{ zIndex: 20 }}
+        >
           <button
             type="button"
             onClick={togglePlayback}
             className="pointer-events-auto flex items-center justify-center rounded-full p-4 text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
-            style={{
-              backgroundColor: "var(--surface2)",
-              touchAction: "manipulation",
-            }}
+            style={{ backgroundColor: "var(--surface2)" }}
             aria-label="Play video"
           >
             <Play size={28} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Control bar */}
       <div
-        className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-2 pointer-events-auto"
+        className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-2"
         style={{
           background:
             "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--surface) 80%, transparent) 40%, var(--surface) 100%)",
-          zIndex: 10,
-          touchAction: "manipulation",
+          zIndex: 20,
         }}
-        onClickCapture={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={togglePlayback}
-          className="flex size-10 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
+          className="flex shrink-0 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
           style={{
-            touchAction: "manipulation",
-            minWidth: "44px",
-            minHeight: "44px",
+            width: "40px",
+            height: "40px",
           }}
           aria-label={isPlaying ? "Pause video" : "Play video"}
         >
@@ -225,16 +221,15 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
           value={currentTime}
           onChange={handleSeek}
           className="w-full cursor-pointer"
-          style={{ accentColor: "var(--primary)", touchAction: "none" }}
+          style={{ accentColor: "var(--primary)" }}
         />
         <button
           type="button"
           onClick={handleFullscreen}
-          className="flex size-10 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
+          className="flex shrink-0 items-center justify-center rounded-full text-[var(--text)] hover:text-[var(--primary)] cursor-pointer"
           style={{
-            touchAction: "manipulation",
-            minWidth: "44px",
-            minHeight: "44px",
+            width: "40px",
+            height: "40px",
           }}
           aria-label="Toggle fullscreen"
         >
