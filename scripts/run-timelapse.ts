@@ -119,7 +119,7 @@ function spawnFfmpeg(
     "-crf",
     "23",
     "-movflags",
-    "frag_keyframe+empty_moov",
+    "frag_keyframe+empty_moov+default_base_moof",
     "-an",
     "-f",
     "mp4",
@@ -248,9 +248,10 @@ async function main() {
 
   await waitForExit();
   console.log("ffmpeg process finished");
+  process.exit(0);
 }
 
 main().catch((error) => {
   console.error("run-timelapse failed", error);
-  process.exitCode = 1;
+  process.exit(1);
 });
