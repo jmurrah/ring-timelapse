@@ -169,10 +169,10 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
       ) : (
         <div className="h-full w-full" />
       )}
-      {/* Transparent overlay for click-to-play (doesn't interfere with controls) */}
+      {/* Transparent overlay for click-to-play - excludes bottom control area */}
       <div
-        className="absolute inset-0 cursor-pointer"
-        style={{ touchAction: "manipulation" }}
+        className="absolute inset-x-0 top-0 cursor-pointer"
+        style={{ bottom: "48px", touchAction: "manipulation" }}
         onClick={togglePlayback}
       />
       <div
@@ -195,13 +195,14 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
         )}
       </div>
       <div
-        className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-2"
+        className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-2 pointer-events-auto"
         style={{
           background:
             "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--surface) 80%, transparent) 40%, var(--surface) 100%)",
           zIndex: 10,
           touchAction: "manipulation",
         }}
+        onClickCapture={(e) => e.stopPropagation()}
       >
         <button
           type="button"
