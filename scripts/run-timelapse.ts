@@ -119,7 +119,7 @@ function spawnFfmpeg(
     "-crf",
     "23",
     "-movflags",
-    "+faststart",
+    "frag_keyframe+empty_moov", // Use fragmented MP4 for streaming (works with pipes)
     "-an",
     "-f",
     "mp4",
@@ -142,6 +142,9 @@ function spawnFfmpeg(
         } else {
           resolve();
         }
+      });
+      ffmpeg.on("error", (err) => {
+        reject(new Error(`ffmpeg process error: ${err.message}`));
       });
     });
 

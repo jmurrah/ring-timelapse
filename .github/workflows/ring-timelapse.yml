@@ -5,6 +5,11 @@ on:
     - cron: "5 1 * * *" # 8:05pm Eastern during Standard Time
   workflow_dispatch:
 
+# Prevent overlapping runs
+concurrency:
+  group: ring-timelapse
+  cancel-in-progress: true
+
 jobs:
   timelapse:
     runs-on: ubuntu-latest
@@ -27,10 +32,16 @@ jobs:
           cache: "npm"
 
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        timeout-minutes: 5
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -n 1
 
       - name: Install deps
+        timeout-minutes: 5
         run: npm ci
 
       - name: Run timelapse
+        timeout-minutes: 10
         run: npx tsx scripts/run-timelapse.ts
