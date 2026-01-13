@@ -30,8 +30,18 @@ export async function GET(request: Request) {
     // Get signed URL for the video
     const { url } = await signR2GetObjectUrl(key, 300); // 5 minute expiry
 
-    // Fetch the video from R2
-    const response = await fetch(url);
+    // Get Range header from client (iOS Safari sends this for video playback)
+    const rangeHeader = request.headers.get("range");
+
+    // Fetch the video from R2, passing through Range header
+    const fetchHeaders: HeadersInit = {};
+    if (rangeHeader) {
+      fetchHeaders["Range"] = rangeHeader;
+    }
+
+    const response = await fetch(url, {
+      headers: fetchHeaders,
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch video: ${response.status}`);
@@ -44,18 +54,32 @@ export async function GET(request: Request) {
     // Check if this is a download request or view request
     const forceDownload = searchParams.get("download") === "1";
 
-    // Stream the video instead of buffering it entirely
-    // This prevents memory issues with large video files
+    // Build response headers
+    const responseHeaders: HeadersInit = {
+      "Content-Type": "video/mp4",
+      "Content-Disposition": forceDownload
+        ? `attachment; filename="${key}"`
+        : `inline; filename="${key}"`,
+      "Cache-Control": "public, max-age=86400",
+      "Accept-Ranges": "bytes",
+    };
+
+    // Pass through content length
+    const contentLength = response.headers.get("Content-Length");
+    if (contentLength) {
+      responseHeaders["Content-Length"] = contentLength;
+    }
+
+    // Pass through Content-Range for 206 responses (critical for iOS)
+    const contentRange = response.headers.get("Content-Range");
+    if (contentRange) {
+      responseHeaders["Content-Range"] = contentRange;
+    }
+
+    // Use the same status code as R2 response (200 or 206)
     return new NextResponse(response.body, {
-      headers: {
-        "Content-Type": "video/mp4",
-        "Content-Disposition": forceDownload
-          ? `attachment; filename="${key}"`
-          : `inline; filename="${key}"`,
-        "Cache-Control": "public, max-age=86400",
-        "Accept-Ranges": "bytes",
-        "Content-Length": response.headers.get("Content-Length") || "",
-      },
+      status: response.status,
+      headers: responseHeaders,
     });
   } catch (error) {
     console.error("Failed to download video", error);

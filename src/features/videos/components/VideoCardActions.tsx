@@ -20,30 +20,28 @@ export function VideoCardActions({
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // Use fetch with credentials to ensure session is included
+        // On mobile, generate a short-lived download URL (5 minutes)
+        // This works with iOS Safari's download/view dialog
         const response = await fetch(
-          `/api/videos/download?key=${encodeURIComponent(video.key)}&download=1`,
+          `/api/videos/download-url?key=${encodeURIComponent(video.key)}`,
           {
             credentials: "same-origin",
           },
         );
 
         if (!response.ok) {
-          throw new Error(`Download failed: ${response.status}`);
+          throw new Error(`Failed to get download URL: ${response.status}`);
         }
 
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
+        const { downloadUrl } = await response.json();
 
         const link = document.createElement("a");
-        link.href = blobUrl;
+        link.href = downloadUrl;
         link.download = video.key;
+        link.target = "_blank";
         document.body.appendChild(link);
         link.click();
         link.remove();
-
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         return;
       }
 
