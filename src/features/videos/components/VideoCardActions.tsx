@@ -20,67 +20,118 @@ export function VideoCardActions({
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // Try native share API first (best iOS experience)
-        if (navigator.share) {
-          try {
-            // Fetch the video as a blob so we can share it
-            const response = await fetch(video.signedUrl);
-            const blob = await response.blob();
-            const file = new File([blob], video.key, { type: "video/mp4" });
+        // Check if Web Share API with file support is available
+        const hasShareAPI = !!navigator.share && !!navigator.canShare;
+        const testFile = new File([], "test.mp4", { type: "video/mp4" });
+        const canShareFiles =
+          hasShareAPI && navigator.canShare({ files: [testFile] });
 
+        console.log("Share API support:", {
+          hasShare: !!navigator.share,
+          hasCanShare: !!navigator.canShare,
+          canShareFiles,
+          hasResolvedSrc: !!resolvedSrc,
+        });
+
+        // Sanitize filename - remove any path separators
+        const cleanFilename = video.key.split("/").pop() || video.key;
+
+        if (!hasShareAPI) {
+          // No Share API at all - show helpful message
+          alert(
+            "Download not available on this device.\n\n" +
+              "To save the video:\n" +
+              "1. Tap to play the video\n" +
+              "2. Tap the Share button in the video player\n" +
+              "3. Choose 'Save Video' or 'Save to Files'",
+          );
+          return;
+        }
+
+        if (!canShareFiles) {
+          // Can share URLs but not files - fallback to URL sharing
+          try {
+            console.log("File sharing not supported, trying URL share");
             await navigator.share({
-              files: [file],
-              title: video.key,
+              url: video.signedUrl,
+              title: cleanFilename,
             });
+            console.log("URL share completed");
             return;
-          } catch (shareError) {
-            // User cancelled or share failed, fall through to link approach
-            console.log("Share cancelled or failed:", shareError);
+          } catch (urlShareError) {
+            if (
+              urlShareError instanceof Error &&
+              urlShareError.name !== "AbortError"
+            ) {
+              console.error("URL share failed:", urlShareError);
+              alert(
+                "Sharing not available. Play the video and use the share button in the player.",
+              );
+            }
+            return;
           }
         }
 
-        // Fallback: Show a link for user to tap (required for iOS download dialog)
-        const link = document.createElement("a");
-        link.href = video.signedUrl;
-        link.download = video.key;
-        link.textContent = "Tap to download";
-        link.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: 10000;
-          background: var(--background);
-          color: var(--text);
-          padding: 16px 24px;
-          border-radius: 8px;
-          border: 2px solid var(--primary);
-          font-size: 18px;
-          font-weight: 600;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        `;
+        try {
+          // Use existing blob if available (faster, no re-download)
+          const blobUrl =
+            resolvedSrc && resolvedSrc.startsWith("blob:")
+              ? resolvedSrc
+              : video.signedUrl;
 
-        const backdrop = document.createElement("div");
-        backdrop.style.cssText = `
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
-          z-index: 9999;
-        `;
+          console.log("Fetching video for share:", blobUrl);
+          const response = await fetch(blobUrl);
 
-        const cleanup = () => {
-          link.remove();
-          backdrop.remove();
-        };
+          if (!response.ok) {
+            throw new Error(`Fetch failed: ${response.status}`);
+          }
 
-        backdrop.onclick = cleanup;
-        link.onclick = () => {
-          setTimeout(cleanup, 100);
-        };
+          const blob = await response.blob();
+          console.log("Video blob size:", blob.size, "bytes");
 
-        document.body.appendChild(backdrop);
-        document.body.appendChild(link);
-        return;
+          // Check for reasonable size (warn if > 100MB)
+          if (blob.size > 100 * 1024 * 1024) {
+            console.warn(
+              "Large video file, may cause memory issues:",
+              blob.size,
+            );
+          }
+
+          const file = new File([blob], cleanFilename, { type: "video/mp4" });
+
+          await navigator.share({
+            files: [file],
+            title: cleanFilename,
+          });
+
+          console.log("File share completed successfully");
+          return;
+        } catch (shareError) {
+          // User cancelled or share failed
+          if (shareError instanceof Error) {
+            console.log("Share error:", shareError.name, shareError.message);
+
+            // User cancelled - don't show error
+            if (shareError.name === "AbortError") {
+              return;
+            }
+
+            // User gesture expired - show specific message
+            if (shareError.name === "NotAllowedError") {
+              alert(
+                "Share failed - please try again.\n\n" +
+                  "If this keeps happening, play the video and use the share button in the player.",
+              );
+              return;
+            }
+
+            // Other errors
+            alert(
+              "Failed to share video. Please try again or play the video and use the share button in the player.",
+            );
+          }
+          return;
+        }
       }
 
       // Desktop: use cached blob for efficiency
@@ -98,6 +149,7 @@ export function VideoCardActions({
       link.remove();
     } catch (error) {
       console.error("Failed to download video", error);
+      alert("Download failed. Please try again.");
     }
   };
 
