@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { signR2GetObjectUrl } from "@/lib/r2/signGetObject";
 import { isValidVideoKey } from "@/features/videos/utils/validateVideoKey";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  // Check authentication
+  const session = await auth();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const key = searchParams.get("key");
 

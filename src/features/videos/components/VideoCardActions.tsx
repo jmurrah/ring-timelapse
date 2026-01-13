@@ -20,13 +20,30 @@ export function VideoCardActions({
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        const downloadUrl = `/api/videos/download?key=${encodeURIComponent(video.key)}&download=1`;
+        // Use fetch with credentials to ensure session is included
+        const response = await fetch(
+          `/api/videos/download?key=${encodeURIComponent(video.key)}&download=1`,
+          {
+            credentials: "same-origin",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Download failed: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
         const link = document.createElement("a");
-        link.href = downloadUrl;
+        link.href = blobUrl;
         link.download = video.key;
         document.body.appendChild(link);
         link.click();
         link.remove();
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         return;
       }
 
