@@ -20,31 +20,18 @@ export function VideoCardActions({
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // On mobile, generate a short-lived download URL (5 minutes)
-        // This works with iOS Safari's download/view dialog
-        const response = await fetch(
-          `/api/videos/download-url?key=${encodeURIComponent(video.key)}`,
-          {
-            credentials: "same-origin",
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to get download URL: ${response.status}`);
-        }
-
-        const { downloadUrl } = await response.json();
-
+        // On mobile, use the presigned URL directly
+        // iOS Safari handles this natively with proper Range support
         const link = document.createElement("a");
-        link.href = downloadUrl;
+        link.href = video.signedUrl;
         link.download = video.key;
-        link.target = "_blank";
         document.body.appendChild(link);
         link.click();
         link.remove();
         return;
       }
 
+      // Desktop: use cached blob for efficiency
       const existingUrl = resolvedSrc;
       const downloadUrl =
         existingUrl && existingUrl.startsWith("blob:")
