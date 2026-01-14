@@ -16,7 +16,8 @@ export type GetSignedVideosOptions = {
 
 const URL_EXPIRY_SECONDS = 86_400; // 24 hours
 const LIST_REVALIDATE_SECONDS = 60; // 1 minute - check for new videos frequently
-const URL_REVALIDATE_SECONDS = 86_400; // 24 hours
+// Cache signed URLs for 12h (half of expiry) to ensure URLs always have remaining validity
+const URL_REVALIDATE_SECONDS = 43_200; // 12 hours
 
 // Cache the video list with 1 min TTL to discover new videos quickly
 const getCachedVideoList = unstable_cache(
@@ -28,7 +29,7 @@ const getCachedVideoList = unstable_cache(
   { revalidate: LIST_REVALIDATE_SECONDS },
 );
 
-// Cache signed URLs with 24h TTL per video key
+// Cache signed URLs with 12h TTL per video key (ensures 12h validity buffer)
 const getCachedSignedUrl = (key: string) =>
   unstable_cache(
     async () => {
