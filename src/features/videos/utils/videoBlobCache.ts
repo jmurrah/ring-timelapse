@@ -91,6 +91,17 @@ export const cacheVideoBlob = async (
   }
 };
 
+export const refreshSignedUrl = async (key: string): Promise<string> => {
+  const response = await fetch(
+    `/api/videos/refresh-url?key=${encodeURIComponent(key)}`,
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to refresh signed URL: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.signedUrl;
+};
+
 export const fetchAndCacheVideo = async (
   key: string,
   url: string,
@@ -101,7 +112,15 @@ export const fetchAndCacheVideo = async (
   if (cached) return cached;
 
   // Fetch video
-  const response = await fetch(url);
+  let response = await fetch(url);
+
+  // If signed URL expired (403), get fresh URL and retry
+  if (response.status === 403) {
+    console.log("Signed URL expired, fetching fresh URL for:", key);
+    const freshUrl = await refreshSignedUrl(key);
+    response = await fetch(freshUrl);
+  }
+
   if (!response.ok) {
     throw new Error(`Failed to fetch video: ${response.status}`);
   }

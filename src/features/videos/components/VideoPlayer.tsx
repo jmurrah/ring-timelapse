@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { SignedVideo } from "@/features/videos/services/getSignedVideos";
-import { getCachedVideoBlob } from "@/features/videos/utils/videoBlobCache";
+import {
+  getCachedVideoBlob,
+  refreshSignedUrl,
+} from "@/features/videos/utils/videoBlobCache";
 import { generatePosterFromVideo } from "@/features/videos/utils/generatePoster";
 import { VideoPlayButton } from "@/features/videos/components/VideoPlayButton";
 import { VideoControls } from "@/features/videos/components/VideoControls";
@@ -23,6 +26,7 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [posterImage, setPosterImage] = useState<string | null>(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -147,6 +151,19 @@ export function VideoPlayer({ video, onSourceReady }: VideoPlayerProps) {
             console.log("Blob URL failed, attempting fallback to signed URL");
             setSrc(video.signedUrl);
             setHasLoadedData(false);
+          } else if (!hasTriedRefresh) {
+            // Signed URL likely expired, try fetching a fresh one
+            console.log("Signed URL failed, fetching fresh URL");
+            setHasTriedRefresh(true);
+            setHasLoadedData(false);
+            refreshSignedUrl(video.key)
+              .then((freshUrl) => {
+                console.log("Got fresh signed URL, retrying");
+                setSrc(freshUrl);
+              })
+              .catch((err) => {
+                console.error("Failed to refresh signed URL:", err);
+              });
           }
         }}
         preload="metadata"
